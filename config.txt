@@ -1,0 +1,1 @@
+{'password_lock': 'hehehehehehehe', 'datafile': 'C:/Users/Khang/Documents/BCIT-BTech_Practicum/ProjectIdeas.docx', 'audioCarrier': 'C:/Users/Khang/Documents/BCIT-BTech_Practicum/The Black Eyed Peas - Where Is The Love.mp3', 'save_to_dir': 'C:/Users/Khang/Documents/BCIT-BTech_Practicum/SimpleGUI'}

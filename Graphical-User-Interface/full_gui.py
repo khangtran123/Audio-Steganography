@@ -5,6 +5,7 @@ from tkinter import scrolledtext
 from tkinter import filedialog
 from tkinter import messagebox
 from tkinter.ttk import Progressbar
+from dictionary import *
 import os
 import sys
 import time
@@ -17,9 +18,11 @@ FILE_FONT = ("Arial Bold", 8)
 cfileCheck = False
 afileCheck = False
 dirCheck = False
-config_list = {}
+aCheck = False
+config_encode = {}
+config_decode= {}
 
-
+config_file = "C:/Users/Khang/Documents/BCIT Semester 8/Audio-Steganography/config.txt"
 
 '''
 Class: Wireframe
@@ -44,7 +47,7 @@ class wireframe(tk.Tk):
         #  multiple pages in one window rather than multiple window dialogs
         self.frames = {}
 
-        for F in (MainPage, EncodePage, DecodePage, CompletePage):
+        for F in (MainPage, EncodePage, DecodePage, CompleteEncodePage, CompleteDecodePage):
 
             #  Start with initial MainPage frame that will lead to encode or decode frame based
             #  what the user picks
@@ -112,6 +115,10 @@ class EncodePage(tk.Frame):
         label.grid(row=0, column=1,pady=10, padx=10)
 
         global password
+        global fileLabel
+        global audioL
+        global dirL
+        
 
         #  Function: Browse()
         #  Purpose: Enables the user to browse from the file directory via filedialog
@@ -119,7 +126,7 @@ class EncodePage(tk.Frame):
             global datafile
             global cfileCheck
             global fileName
-            global config_list
+            global config_encode
             global fileLabel
 
             file = ""
@@ -133,17 +140,15 @@ class EncodePage(tk.Frame):
         
             datafile = str(file)
             if (len(datafile) == 0):
-                messagebox.showerror("You have to select a file!")
+                messagebox.showwarning("No File Selected Warning","Remember, you have to select a data file to embed!")
             else:
                 # Now we only want to display the filename and not the full path
                 x = datafile.split("/")
                 fileName = x[-1]
-                fileLabel = tk.Label(self, text="", font=FILE_FONT)
-                fileLabel.grid(row=1, column=1)
                 fileLabel.configure(text=fileName)
                 #print (datafile)
                 cfileCheck = True
-                config_list["datafile"] = datafile
+                config_encode["datafile"] = datafile
         
         
         #  Function: carrierBrowse()
@@ -152,7 +157,7 @@ class EncodePage(tk.Frame):
             global audioCarrier
             global afileCheck
             global audioFilename
-            global config_list
+            global config_encode
             global audioL
 
             audioFile = ""
@@ -160,34 +165,35 @@ class EncodePage(tk.Frame):
             
             audioFile = filedialog.askopenfilename(filetypes = (("Audio File","*.mp3"),("Wav Audio Files","*.wav"),("all files","*.*")))
             audioCarrier = str(audioFile)
-            y = audioCarrier.split("/")
-            audioFilename = y[-1]
-            audioL = tk.Label(self, text="", font=FILE_FONT)
-            audioL.grid(row=3, column=1)
-            audioL.configure(text=audioFilename)
-            afileCheck = True
-            config_list["audioCarrier"] = audioCarrier
-            return afileCheck
+            if (len(audioCarrier) == 0):
+                messagebox.showwarning("No File Selected Warning","Remember, you have to select an audio file to be the carrier!")
+            else:
+                y = audioCarrier.split("/")
+                audioFilename = y[-1]
+                audioL.configure(text=audioFilename)
+                afileCheck = True
+                config_encode["audioCarrier"] = audioCarrier
 
 
         def dirSave():
             global dirCheck
             global user_dir
             global directory
-            global config_list
+            global config_encode
             global dirL
 
             directory = ""
             user_dir = ""
             
             directory = filedialog.askdirectory()
-            dirL = tk.Label(self, text="", font=FILE_FONT)
-            dirL.grid(row=4, column=1)
-            dirL.configure(text=directory)
             user_dir = str(directory)
-            dirCheck = True
-            config_list["save_to_dir"] = user_dir
-            return dirCheck
+            if (len(user_dir) == 0):
+                messagebox.showwarning("No Directory Selected Warning","Remember, you have to select a directory!")
+            else:
+                dirL.configure(text=directory)
+                dirCheck = True
+                config_encode["save_to_dir"] = user_dir
+                #return dirCheck
         
         def helpBox():
             messagebox.showinfo('Help', 'Confidential File:  The file you want to hide into the audio                                       '
@@ -202,11 +208,37 @@ class EncodePage(tk.Frame):
                                 'person who obtains this password can                                         '
                                 'unlock the file to retrieve the hidden file'
                                 '\n\n Begin:  Click Begin to begin embedding the data file into the                '
-                                'audio carrier file.')   
+                                'audio carrier file.')
+
+        def backToM():
+            global fileLabel
+            global audioL
+            global dirL
+            global password
+            global datafile
+            global audioCarrier
+            global menuBtn
+
+            #Reset form by clearing all labels and global variables
+            if (fileLabel.winfo_exists() == 1):
+                fileLabel.configure(text="")           
+            if (audioL.winfo_exists() == 1):
+                audioL.configure(text="")
+            if (dirL.winfo_exists() == 1):
+                dirL.configure(text="")
+            if (len(password.get()) != 0):
+                password.delete(0, 'end')
+
+            datafile = ""
+            audioCarrier = ""
+            controller.show_frame(MainPage)
 
         
         fileL = tk.Label(self,text="Confidential File: ", font=LABEL_FONT, width=15, anchor='w')
         fileL.grid(row=1,column=0)
+
+        fileLabel = tk.Label(self, text="", font=FILE_FONT)
+        fileLabel.grid(row=1, column=1)
         
         # create a Browse File Directory Button 
         browseBtn = tk.Button(self, text="Browse", height="1", width="10",
@@ -215,14 +247,20 @@ class EncodePage(tk.Frame):
 
         carrierL = tk.Label(self,text="Carrier File: ", font=LABEL_FONT, width=15, anchor='w')
         carrierL.grid(row=3,column=0)
+
+        audioL = tk.Label(self, text="", font=FILE_FONT)
+        audioL.grid(row=3, column=1)
         
         # create a Browse File Directory Button 
         browseBtn = tk.Button(self, text="Browse", height="1", width="10",
                command=carrierBrowse)
         browseBtn.grid(row=3,column=2, padx=4)
 
-        dirL = tk.Label(self,text="Directory: ", font=LABEL_FONT, width=15, anchor='w')
-        dirL.grid(row=4,column=0)
+        label = tk.Label(self,text="Directory: ", font=LABEL_FONT, width=15, anchor='w')
+        label.grid(row=4,column=0)
+
+        dirL = tk.Label(self, text="", font=FILE_FONT)
+        dirL.grid(row=4, column=1)
         
         # create a Browse File Directory Button 
         browseBtn = tk.Button(self, text="Browse", height="1", width="10",
@@ -239,9 +277,6 @@ class EncodePage(tk.Frame):
         passReq = tk.Label(self,text="Minimum of length of 8 characters", font=LABEL_FONT, width=27, anchor='w')
         passReq.grid(row=6,column=1)
 
-
-        def run_algorithm():
-            os.system('random.py')
             
         #  This function is called when the Begin button is pressed
         #  Function saves all user input (both file paths and passphrase)
@@ -249,20 +284,20 @@ class EncodePage(tk.Frame):
             global line
             global config_file
             global passphrase
-            global config_list
+            global config_encode
             
-            config_file = "C:/Users/Khang/Documents/BCIT Semester 8/Project/config-file.txt"
+            config_file = "C:/Users/Khang/Documents/BCIT Semester 8/Audio-Steganography/config.txt"
             
             passphrase = password.get()
-            config_list["password"] = passphrase
+            config_encode["password_lock"] = passphrase
             if (len(passphrase) < 8) or (cfileCheck == False) or (afileCheck == False) or (dirCheck == False):
                 # alert message informing user that no fields can be null
                 messagebox.showerror("Error", "Cannot leave any fields empty, ie. Both files must be chosen and password cannot be null or less than 8 characters!")
             else:
                 with open(config_file,"w") as configFile:
-                    configFile.write(str(config_list))
-                print ("List printed to file!")
-                controller.show_frame(CompletePage)
+                    configFile.write(str(config_encode))
+                getConfigFile()
+                controller.show_frame(CompleteEncodePage)
                         
 
         # create a Begin Button
@@ -271,12 +306,12 @@ class EncodePage(tk.Frame):
 
         # create Main Menu Button 
         menuBtn = tk.Button(self, text="Main Menu", height="1", width="12",
-               command=lambda: controller.show_frame(MainPage))
+               command=backToM)
         menuBtn.grid(row=8,column=2, padx=2, pady=13)
 
         # create Help Me Button 
         helpEBtn = tk.Button(self, text="Help", height="1", width="8",
-               command=helpBox) #helpBox)
+               command=helpBox)
         helpEBtn.grid(row=8,column=0, padx=8, pady=13)
 
 
@@ -292,16 +327,28 @@ class DecodePage(tk.Frame):
         label = tk.Label(self, text="Decode", font=TITLE_FONT)
         label.grid(row=0, column=1,pady=10, padx=10)
 
+        global passwordU
+        global pickedAudio
+
         #  Function: carrierBrowse()
         #  Purpose: Enables the user to browse from the file directory via filedialog
         def carrierBrowseD():
+            global audioL
+            global pickedAudio
+            global config_decode
+            global aCheck
+            
             audioFile = filedialog.askopenfilename(filetypes = (("Audio File","*.mp3"),("Wav Audio Files","*.wav"),("all files","*.*")))
-            a = str(audioFile).split("/")
-            audioName = a[-1]
-            audioL = tk.Label(self, text="", font=FILE_FONT)
-            audioL.grid(row=1, column=1)
-            audioL.configure(text=audioName)
-
+            audioF = str(audioFile)
+            if (len(audioF) == 0):
+                messagebox.showwarning("No File Selected Warning","Remember, you have to select an audio file for decoding!")
+            else:
+                aCheck = True
+                a = audioF.split("/")
+                audioName = a[-1]
+                pickedAudio.configure(text=audioName)
+                config_decode["audioF"] = audioF
+        
         def helpBox():
             messagebox.showinfo('Help', 'Audio File:  Choose the audio file that has been sent to you                         covertly.'
                                 ' This file contains the embedded data file                       that you want to retrieve.'
@@ -309,12 +356,12 @@ class DecodePage(tk.Frame):
                                 'unlock and retreive the hidden file                                     '
                                 '\n\nBegin:  Click Begin to begin decoding the audio file to                           retrieve the secret file!')
 
-        def run_decode():
-            os.system('random.py')
-
         
         audioCarL = tk.Label(self,text="Audio File: ", font=LABEL_FONT, width=15, anchor='w')
         audioCarL.grid(row=1,column=0)
+
+        pickedAudio = tk.Label(self, text="", font=FILE_FONT)
+        pickedAudio.grid(row=1, column=1)
         
         # create a Browse File Directory Button 
         browseBtn = tk.Button(self, text="Browse", height="1", width="10",
@@ -324,43 +371,80 @@ class DecodePage(tk.Frame):
         enterKeyL = tk.Label(self,text="Enter Passphrase:", font=LABEL_FONT, width=15, anchor='w')
         enterKeyL.grid(row=2,column=0, padx=3)
 
-        password = tk.Entry(self, show="*")
-        password.grid(row=2, column=1, padx=3)
+        passwordU = tk.Entry(self, show="*")
+        passwordU.grid(row=2, column=1, padx=3)
 
         space = tk.Label(self,text="")
         space.grid(row=3, column=0, pady=10, padx=10)
+
+        #  This function is called when the Begin button is pressed
+        #  Function saves all user input (file path and passphrase)
+        def getFormInput():
+            global line
+            global config_file
+            global passphrase_unlock
+            global config_decode
+            global acheck
+            
+            passphrase_unlock = passwordU.get()
+            config_decode["password_unlock"] = passphrase_unlock
+                    
+            if (len(passphrase_unlock) == 0) or (aCheck == False):
+                # alert message informing user that no fields can be null
+                messagebox.showerror("Empty Field Error", "Cannot leave any fields empty, ie. File must be chosen and password cannot be null")
+            else:
+                with open(config_file,"w") as configFile:
+                    configFile.write(str(config_decode))
+                getConfigFile()
+                controller.show_frame(CompleteDecodePage)
+
+        def back():
+            global pickedAudio
+            global passwordU
+            global audioFile
+
+            #Reset form by clearing all labels and global variables
+            if (pickedAudio.winfo_exists() == 1):
+                pickedAudio.configure(text="")
+            if (len(passwordU.get()) != 0):
+                passwordU.delete(0, 'end')
+                
+            audioFile = ""
+            controller.show_frame(MainPage)
+                
             
         # create Main Menu Button 
         menuBtn = tk.Button(self, text="Main Menu", height="1", width="12",
-               command=lambda: controller.show_frame(MainPage))
-        menuBtn.grid(row=4, column=2, padx=10, pady=13)
+               command=back)
+        menuBtn.grid(row=4, column=2, padx=17, pady=13)
 
         # create Help Me Button 
         helpEBtn = tk.Button(self, text="Help", height="1", width="8",
                command=helpBox)
-        helpEBtn.grid(row=4,column=0, padx=10, pady=13)
+        helpEBtn.grid(row=4,column=0, padx=17, pady=13)
 
          # create a Begin Button 
         beginBtn = tk.Button(self, text="Begin Decoding", height="1", width="12",
-                             command=run_decode)
-        beginBtn.grid(row=4,column=1, padx=10, pady=13)
+                             command=getFormInput)
+        beginBtn.grid(row=4,column=1, padx=17, pady=13)
 
 
 
 '''
-Page: Complete Page
+Page: Completed Encode Page
 Purpose: This page is created when the user completes either the encoding
          or decoding process. 
 '''
-class CompletePage(tk.Frame):
+class CompleteEncodePage(tk.Frame):
 
     def __init__(self, parent, controller):
         tk.Frame.__init__(self,parent) #  parent class is "wireframe class"
         title = tk.Label(self, text="Encoding Stage", font=TITLE_FONT)
         title.pack(side=TOP, pady=10, padx=10)
 
-        def run_algorithm():
-            os.system('random.py')
+        def run_encode_algorithm():
+            #  This is where I will call the functions in algorithm script
+            return
                 
         '''
         Function Percentage
@@ -447,11 +531,105 @@ class CompletePage(tk.Frame):
 
         status = tk.Label(self,text="Please wait until the process is complete to produce the outputted audio file", relief=SUNKEN, anchor=W, bd=2)
         status.pack(side=BOTTOM, fill=X)
+
+'''
+Page: Completed Encode Page
+Purpose: This page is created when the user completes either the encoding
+         or decoding process. 
+'''
+class CompleteDecodePage(tk.Frame):
+
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self,parent) #  parent class is "wireframe class"
+        title = tk.Label(self, text="Decoding Stage", font=TITLE_FONT)
+        title.pack(side=TOP, pady=10, padx=10)
+
+        def run_decode_algorithm():
+            #  This is where I will call the functions in algorithm script
+            return
+                
+        '''
+        Function Percentage
+        Case 1: What is x % of y? 
+        Case 2: x is what % of y?
+        Case 3: What is the percentage increase/decrease from x to y
+        '''
+        def percentage_calculator(x,y,case=1):
+            if (case == 1):
+                r = x/100*y
+                return r
+            elif (case == 2):
+                r = x/y*100
+                return r
+            elif (case == 3):
+                r = (y-x)/x*100
+                return r
+            else:
+                raise Exception("Only case 1, 2, or 3 are available!")
+
+        def progress_bar_process(progress, runButton):
+            runButton.config(state="disabled")
+            # create the countdown measurements of 10 seconds
+            alist = range(10)
+            # Run Stego Algorithm Script
+            #run_algorithm()
+            try:
+                p = 0
+                for i in alist:
+                    p += 1
+                    # Case2: x is what percent of y?
+                    unit = percentage_calculator(p, len(alist), case=2) 
+
+                    time.sleep(1)
+
+                    progress['value'] = unit
+                    percent['text'] = "{}%".format(int(unit))
+
+                    container.update()
+
+                messagebox.showinfo('Info', "Retrieval Process Complete! Hidden data is in the same directory as the original audio output directory")
+                
+                def reset():
+                    global pickedAudio
+                    global audioF
+                    global passwordU
+
+                    #Reset form by clearing all labels and global variables
+                    pickedAudio.configure(text="")
+                    passwordU.delete(0, 'end')
+                    audioF = ""
+                    menuBtn.pack_forget()
+                    runButton.config(state="active")
+                    controller.show_frame(MainPage)
+                
+                
+                # create back to Main Menu Button
+                global menuBtn
+                menuBtn = tk.Button(self, text="Main Menu", height="1", width="12",
+                       command=reset)
+                menuBtn.pack(side=BOTTOM, pady = 15)
+                
+            except Exception as e:
+                messagebox.showinfo('Info', "ERROR: {}".format(e))
+                sys.exit()       
+        
+        
+        percent = tk.Label(self,text="", anchor=S)
+        percent.pack()
+
+        progress = Progressbar(self,length=400, mode='determinate')
+        progress.pack()
+
+        runButton = tk.Button(self, text='Begin Decoding',
+                           command=(lambda: progress_bar_process(progress, runButton)))
+        runButton.pack(pady=15)
+
+        status = tk.Label(self,text="Please wait until the process is complete to retrieve the hidden data file", relief=SUNKEN, anchor=W, bd=2)
+        status.pack(side=BOTTOM, fill=X)
         
 
         
 app = wireframe()
 app.title("Khang's Audio Steganography Program")
-#app.geometry("400x250")
-#app.resizable(0,0)
+app.resizable(False,False)
 app.mainloop()
