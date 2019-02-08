@@ -5,10 +5,12 @@ from tkinter import scrolledtext
 from tkinter import filedialog
 from tkinter import messagebox
 from tkinter.ttk import Progressbar
-from dictionary import *
+from audio_steg import *
+#from WAV_to_MP3 import *
 import os
 import sys
 import time
+import platform
 
 
 TITLE_FONT = ("Arial Bold", 12)
@@ -21,6 +23,8 @@ dirCheck = False
 aCheck = False
 config_encode = {}
 config_decode= {}
+# platform.system() gets the current OS of the system running the script
+platform = str(platform.system())
 
 config_file = "C:/Users/Khang/Documents/BCIT Semester 8/Audio-Steganography/config.txt"
 
@@ -118,6 +122,7 @@ class EncodePage(tk.Frame):
         global fileLabel
         global audioL
         global dirL
+        global platform
         
 
         #  Function: Browse()
@@ -128,15 +133,26 @@ class EncodePage(tk.Frame):
             global fileName
             global config_encode
             global fileLabel
+            global platform
 
             file = ""
             datafile = ""
             
-            file = filedialog.askopenfilename(initialdir="C:/Users/Khang/Documents/BCIT-BTech_Practicum",
-                                              filetypes = (("Word Documents","*.docx"),("XML Files","*.xml"),
-                                                           ("Word 97-2003 Documents","*.doc"),("Text Files","*.txt"),
-                                                           ("PDF Files","*.pdf"),("all files","*.*")))
-
+            if (platform == "Windows"):
+                print (platform)
+                file = filedialog.askopenfilename(title = "Select a Data File",
+                                                  initialdir="C:/",
+                                                  filetypes = (("Word Documents","*.docx"),("XML Files","*.xml"),
+                                                               ("Word 97-2003 Documents","*.doc"),("Text Files","*.txt"),
+                                                               ("PDF Files","*.pdf"),("all files","*.*")))
+            elif(platform == "Linux"):
+                file = filedialog.askopenfilename(title = "Select a Data File",
+                                                  initialdir="/",
+                                                  filetypes = (("Word Documents","*.docx"),("XML Files","*.xml"),
+                                                               ("Word 97-2003 Documents","*.doc"),("Text Files","*.txt"),
+                                                               ("PDF Files","*.pdf"),("all files","*.*")))
+            else:
+                return
         
             datafile = str(file)
             if (len(datafile) == 0):
@@ -159,12 +175,23 @@ class EncodePage(tk.Frame):
             global audioFilename
             global config_encode
             global audioL
+            global platform
 
             audioFile = ""
             audioCarrier = ""
-            
-            audioFile = filedialog.askopenfilename(filetypes = (("Audio File","*.mp3"),("Wav Audio Files","*.wav"),("all files","*.*")))
-            audioCarrier = str(audioFile)
+
+            if (platform == "Windows"):
+                print (platform)
+                audioFile = filedialog.askopenfilename( title = "Select an Audio File",
+                                                        initialdir="C:/",
+                                                        filetypes = (("Audio File","*.mp3"),("Wav Audio Files","*.wav"),("all files","*.*")))
+                audioCarrier = str(audioFile)
+            elif (platform == "Linux"):
+                audioFile = filedialog.askopenfilename( title = "Select an Audio File",
+                                                        initialdir="/",
+                                                        filetypes = (("Audio File","*.mp3"),("Wav Audio Files","*.wav"),("all files","*.*")))
+                audioCarrier = str(audioFile)
+                
             if (len(audioCarrier) == 0):
                 messagebox.showwarning("No File Selected Warning","Remember, you have to select an audio file to be the carrier!")
             else:
@@ -181,12 +208,19 @@ class EncodePage(tk.Frame):
             global directory
             global config_encode
             global dirL
+            global platform
 
             directory = ""
             user_dir = ""
-            
-            directory = filedialog.askdirectory()
-            user_dir = str(directory)
+
+            if (platform == "Windows"):
+                print (platform)
+                directory = filedialog.askdirectory(title= "Select a Directory", initialdir="C:/")
+                user_dir = str(directory)
+            elif (platform == "Linux"):
+                directory = filedialog.askdirectory(title="Select a Directory", initialdir="/")
+                user_dir = str(directory)
+                
             if (len(user_dir) == 0):
                 messagebox.showwarning("No Directory Selected Warning","Remember, you have to select a directory!")
             else:
@@ -285,6 +319,7 @@ class EncodePage(tk.Frame):
             global config_file
             global passphrase
             global config_encode
+            global output
             
             config_file = "C:/Users/Khang/Documents/BCIT Semester 8/Audio-Steganography/config.txt"
             
@@ -296,7 +331,9 @@ class EncodePage(tk.Frame):
             else:
                 with open(config_file,"w") as configFile:
                     configFile.write(str(config_encode))
-                getConfigFile()
+
+                af = config_encode["audioCarrier"]
+                output = af.replace(".wav", ".mp3")
                 controller.show_frame(CompleteEncodePage)
                         
 
@@ -337,9 +374,21 @@ class DecodePage(tk.Frame):
             global pickedAudio
             global config_decode
             global aCheck
+            global platform
+
+            if (platform == "Windows"):
+                audioFile = filedialog.askopenfilename( title = "Select an Audio File",
+                                                        intialdir = "C:/",
+                                                        filetypes = (("Audio File","*.mp3"),("Wav Audio Files","*.wav"),("all files","*.*")))
+                audioF = str(audioFile)
+            elif (platform == "Linux"):
+                audioFile = filedialog.askopenfilename( title = "Select an Audio File",
+                                                        intialdir = "/",
+                                                        filetypes = (("Audio File","*.mp3"),("Wav Audio Files","*.wav"),("all files","*.*")))
+                audioF = str(audioFile)
+            else:
+                return
             
-            audioFile = filedialog.askopenfilename(filetypes = (("Audio File","*.mp3"),("Wav Audio Files","*.wav"),("all files","*.*")))
-            audioF = str(audioFile)
             if (len(audioF) == 0):
                 messagebox.showwarning("No File Selected Warning","Remember, you have to select an audio file for decoding!")
             else:
@@ -395,7 +444,6 @@ class DecodePage(tk.Frame):
             else:
                 with open(config_file,"w") as configFile:
                     configFile.write(str(config_decode))
-                getConfigFile()
                 controller.show_frame(CompleteDecodePage)
 
         def back():
@@ -466,12 +514,18 @@ class CompleteEncodePage(tk.Frame):
                 raise Exception("Only case 1, 2, or 3 are available!")
 
         def progress_bar_process(progress, runButton):
+            global output
+            global config_encode
+            
             runButton.config(state="disabled")
             # create the countdown measurements of 10 seconds
             alist = range(10)
             # Run Stego Algorithm Script
             #run_algorithm()
             try:
+                #test(output)
+                #file_transform(config_encode["audioCarrier"],output)
+                stegos()
                 p = 0
                 for i in alist:
                     p += 1
@@ -494,6 +548,7 @@ class CompleteEncodePage(tk.Frame):
                     global password
                     global datafile
                     global audioCarrier
+                    global output
                     global menuBtn
 
                     #Reset form by clearing all labels and global variables
@@ -503,6 +558,7 @@ class CompleteEncodePage(tk.Frame):
                     password.delete(0, 'end')
                     datafile = ""
                     audioCarrier = ""
+                    output = ""
                     menuBtn.pack_forget()
                     runButton.config(state="active")
                     controller.show_frame(MainPage)
@@ -628,8 +684,11 @@ class CompleteDecodePage(tk.Frame):
         status.pack(side=BOTTOM, fill=X)
         
 
-        
-app = wireframe()
-app.title("Khang's Audio Steganography Program")
-app.resizable(False,False)
-app.mainloop()
+#  This condition makes sure that the user is either operating in Windows or Linux as we don't support any other OS at the moment
+if ((platform == "Windows") or (platform == "Linux")):
+    app = wireframe()
+    app.title("Khang's Audio Steganography Program")
+    app.resizable(False,False)
+    app.mainloop()
+else:
+    print ("This Application does not support " + platform + " at the moment!")
