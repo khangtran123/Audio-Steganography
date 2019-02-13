@@ -5,12 +5,16 @@ from tkinter import scrolledtext
 from tkinter import filedialog
 from tkinter import messagebox
 from tkinter.ttk import Progressbar
-from audio_steg import *
+#from audio_steg import *
+from encryption import *
+from key_generator import create_keys
+from dictionary import getConfigFile
 #from WAV_to_MP3 import *
 import os
 import sys
 import time
 import platform
+import re
 
 
 TITLE_FONT = ("Arial Bold", 12)
@@ -85,20 +89,11 @@ class MainPage(tk.Frame):
         tk.Frame.__init__(self,parent) #  parent class is "wireframe class"
         title = tk.Label(self, text="Khang's Audio Steganography Program", font=TITLE_FONT)
         title.pack(side=TOP, pady=10, padx=10)
-
-        imgpath = r"C:/Users/Khang/Documents/BCIT-BTech_Practicum/LockedEnvelope.gif"
-        photo = PhotoImage(file= imgpath)
         
         # create encode Button 
         encodeBtn = tk.Button(self, text="Encode", height="2", width="30",
                command=lambda: controller.show_frame(EncodePage))
         encodeBtn.pack(padx=5, pady=10)
-
-        '''
-        pic = tk.Label(self, image=photo)
-        pic.image = photo
-        pic.grid(row=3,column=1)
-        #pic.pack(side=RIGHT)'''
                              
          # create Decode Button 
         decodeBtn = tk.Button(self, text="Decode", height="2", width="30",
@@ -244,6 +239,15 @@ class EncodePage(tk.Frame):
                                 '\n\n Begin:  Click Begin to begin embedding the data file into the                '
                                 'audio carrier file.')
 
+        def password_req():
+            messagebox.showinfo('Password Requirement Checklist', 'Primary conditions for password validation :'
+
+                                '\n\n   1. Minimum 8 characters and Maiximum 12 characters.'
+                                '\n\n   2 .The alphabets must be between [a-z]'
+                                '\n\n   3. At least one alphabet should be of Upper Case [A-Z]'
+                                '\n\n   4. At least 1 number or digit between [0-9].'
+                                '\n\n   5. At least 1 character from [ _ or @ or $ or ! ].')
+
         def backToM():
             global fileLabel
             global audioL
@@ -308,7 +312,9 @@ class EncodePage(tk.Frame):
         password = tk.Entry(self, show="*")
         password.grid(row=5, column=1, padx=3)
 
-        passReq = tk.Label(self,text="Minimum of length of 8 characters", font=LABEL_FONT, width=27, anchor='w')
+        passReq = tk.Button(self,text="       Passphrase Requirements", height="1",
+                            width="27", anchor='w', font = ('Arial Bold', '8','bold'),
+                            bg="SkyBlue2", command=password_req)
         passReq.grid(row=6,column=1)
 
             
@@ -322,13 +328,41 @@ class EncodePage(tk.Frame):
             global output
             
             config_file = "C:/Users/Khang/Documents/BCIT Semester 8/Audio-Steganography/config.txt"
+            flag = 0
             
             passphrase = password.get()
-            config_encode["password_lock"] = passphrase
-            if (len(passphrase) < 8) or (cfileCheck == False) or (afileCheck == False) or (dirCheck == False):
+
+            while True:   
+                if (len(passphrase) < 8): 
+                    flag = -1
+                    break
+                elif (len(passphrase) > 12):
+                    flag = -1
+                    break
+                elif not re.search("[a-z]", passphrase): 
+                    flag = -1
+                    break
+                elif not re.search("[A-Z]", passphrase): 
+                    flag = -1
+                    break
+                elif not re.search("[0-9]", passphrase): 
+                    flag = -1
+                    break
+                elif not re.search("[_@$!]", passphrase): 
+                    flag = -1
+                    break
+                elif re.search("\s", passphrase): 
+                    flag = -1
+                    break
+                else: 
+                    flag = 0
+                    break
+            
+            if (flag == -1) or (cfileCheck == False) or (afileCheck == False) or (dirCheck == False):
                 # alert message informing user that no fields can be null
-                messagebox.showerror("Error", "Cannot leave any fields empty, ie. Both files must be chosen and password cannot be null or less than 8 characters!")
+                messagebox.showerror("Error", "Cannot leave any fields empty, ie. Both files must be chosen and password must meet all requirements!")
             else:
+                config_encode["password_lock"] = passphrase
                 with open(config_file,"w") as configFile:
                     configFile.write(str(config_encode))
 
@@ -520,12 +554,15 @@ class CompleteEncodePage(tk.Frame):
             runButton.config(state="disabled")
             # create the countdown measurements of 10 seconds
             alist = range(10)
-            # Run Stego Algorithm Script
-            #run_algorithm()
             try:
                 #test(output)
                 #file_transform(config_encode["audioCarrier"],output)
-                stegos()
+                #stegos()
+                #print ("BITCH")
+                private_key, public_key = create_keys()
+                dataF, audioC, save_to_dir, pwd = getConfigFile()
+                password = hashlib.sha256(pwd.encode('utf-8')).digest()
+                file_encryption(private_key, public_key, password, dataF, save_to_dir)
                 p = 0
                 for i in alist:
                     p += 1
