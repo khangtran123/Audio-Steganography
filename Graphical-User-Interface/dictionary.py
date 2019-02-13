@@ -44,4 +44,4 @@ def getConfigFile():
         print ("No other dictionaries exist")
         return
 
-getConfigFile()
+#getConfigFile()
