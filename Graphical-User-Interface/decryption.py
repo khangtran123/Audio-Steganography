@@ -6,6 +6,7 @@ from Crypto.PublicKey import RSA
 from Crypto.Hash import SHA256
 from Crypto.Random import random
 from Crypto.Signature import PKCS1_v1_5
+from dictionary import getConfigFile
 
 import base64
 import hashlib
@@ -20,22 +21,23 @@ b) Data Security that uses public/private keys--> RSA Keys
         - The Sender will use the shared public key to lock the file
         - The reciever will then use their private key to unlock the file
 '''
+#locked_file, directory, private_key, public_key, pwd = getConfigFile()
 
 #  Opening Parameters
-locked_file = "C:/Users/Khang/Documents/BCIT Semester 8/Project/file.all"
-directory = "C:/Users/Khang/Documents/GitHub"
+#locked_file = "C:/Users/Khang/Documents/BCIT Semester 8/Project/file.all"
+#directory = "C:/Users/Khang/Documents/GitHub"
 #locked_file = "KhangTran_Resume.all"
-pwd = "bitchassFuck!"
+#pwd = "bitchassFuck!"
 
 #  The reciever will decrypt the file via their private key.
-private_key = "private_key.pem"    # These values will change when the gui adds the browse option
-public_key = "public_key.pem"
+#private_key = "private_key.pem"    # These values will change when the gui adds the browse option
+#public_key = "public_key.pem"
 
 
 # This hashes the key string literal via SHA-256 (Secure Hash Algorithm) which generates
 # a 32 byte (256 bit) hash that cannot be decrypted back. This is an implementation of
 # secure form of a signature to indicate the reciever that this is from a trusted source
-password = hashlib.sha256(pwd.encode('utf-8')).digest()
+#password = hashlib.sha256(pwd.encode('utf-8')).digest()
 
 
 '''
@@ -199,6 +201,8 @@ def decrypt(private_key, public_key, password, locked_file, directory):
                 f.close()
 
                 signature_verify(public_key, locked_file)
+                # Now that the file has been retrieved, we want to remove all unnecessary files
+                cleanup(locked_file, sig_file_name, key_file_name, cipher_file)
                 continue
             else:
                 continue
@@ -225,12 +229,9 @@ def extraction(input_file):
 #locked_filename = file_name.split('.')[0]
 
 # We first need to extract the files from the all file sent by the sender
-extraction(locked_file)
+#extraction(locked_file)
 
 # Now that all files are extracted, we want to decrypt the file
-decrypt(private_key, public_key, password, locked_file, directory)
+#decrypt(private_key, public_key, password, locked_file, directory)
 
-# Now that the file has been retrieved, we want to remove all unnecessary files
-cleanup(locked_file, sig_file_name, key_file_name, cipher_file)
-
-print ("File Decrypted!")
+#print ("File Decrypted!")

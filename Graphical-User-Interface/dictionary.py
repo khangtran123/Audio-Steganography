@@ -35,13 +35,16 @@ def getConfigFile():
         
     elif ("password_unlock" in content):
         audioF = content["audioF"]
+        directory = content["save_to_dir"]
+        private_key = content["private_key"]
+        public_key = content["public_key"]
         password_unlock = content["password_unlock"]
 
         #print ("This is the audio file for decoding --> " + audioF)
         #print ("This is the password to unlock --> " + password_unlock)
-        return audioF, password_unlock
+        return audioF, directory, private_key, public_key, password_unlock
     else:
         print ("No other dictionaries exist")
         return
 
-getConfigFile()
+#getConfigFile()

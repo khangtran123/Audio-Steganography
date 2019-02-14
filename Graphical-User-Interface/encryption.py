@@ -21,7 +21,7 @@ b) Data Security that uses public/private keys--> RSA Keys
         - The Sender will use the shared public key to lock the file
         - The reciever will then use their private key to unlock the file
 '''
-dataF, audioC, save_to_dir, pwd = getConfigFile()
+#dataF, audioC, save_to_dir, pwd = getConfigFile()
 
 #  Opening Parameters
 #dataF = "C:/Users/Khang/Documents/Job Hunting/KhangTran_Resume.docx"
@@ -29,17 +29,18 @@ dataF, audioC, save_to_dir, pwd = getConfigFile()
 #oFile = "C:/Users/Khang/Documents/KhangTran_Resume.enc"
 #iFile = "KhangTran_Resume.docx"
 #oFile = "KhangTran_Resume.docx.enc"
+#pwd = "Losangles12!"
 
 #  Sender encrypts the cipher with the reciever's public key and then the reciever will
 #  decrypt the file via their private key.
-priv_key = "private_key.pem"    # These values will change when the gui adds the browse option
-pub_key = "public_key.pem"
+#priv_key = "private_key.pem"    # These values will change when the gui adds the browse option
+#pub_key = "public_key.pem"
 
 
 # This hashes the key string literal via SHA-256 (Secure Hash Algorithm) which generates
 # a 32 byte (256 bit) hash that cannot be decrypted back. This is an implementation of
 # secure form of a signature to indicate the reciever that this is from a trusted source
-password = hashlib.sha256(pwd.encode('utf-8')).digest()
+#password = hashlib.sha256(pwd.encode('utf-8')).digest()
 
 
 '''
@@ -192,4 +193,4 @@ def file_encryption(private_key, public_key, password, input_file, directory):
     
 
 
-#file_encryption(priv_key, pub_key, password, dataF, save_to_dir)
+#file_encryption(priv_key, pub_key, password, dataF, directory)
