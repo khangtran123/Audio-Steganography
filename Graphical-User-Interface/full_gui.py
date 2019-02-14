@@ -253,6 +253,49 @@ class EncodePage(tk.Frame):
             audioCarrier = ""
             controller.show_frame(MainPage)
 
+        def gen_keys():
+            
+            global passphrase, private_key, public_key, status
+    
+            flag = 0
+            
+            passphrase = password.get()
+
+            while True:   
+                if (len(passphrase) < 8): 
+                    flag = -1
+                    break
+                elif (len(passphrase) > 12):
+                    flag = -1
+                    break
+                elif not re.search("[a-z]", passphrase): 
+                    flag = -1
+                    break
+                elif not re.search("[A-Z]", passphrase): 
+                    flag = -1
+                    break
+                elif not re.search("[0-9]", passphrase): 
+                    flag = -1
+                    break
+                elif not re.search("[_@$!]", passphrase): 
+                    flag = -1
+                    break
+                elif re.search("\s", passphrase): 
+                    flag = -1
+                    break
+                else: 
+                    flag = 0
+                    break
+            
+            if (flag == -1):
+                # alert message informing user that no fields can be null
+                status = "Keys-Not-Generated"
+                messagebox.showerror("Passphrase Error", "Password must meet all requirements!")
+            else:
+                private_key, public_key = create_keys(passphrase)
+                status = "Keys-Generated"
+                messagebox.showinfo("Sucessful", "Password Accepted and Private & Public Keys Generated!")
+
         
         fileL = tk.Label(self,text="Confidential File: ", font=LABEL_FONT, width=15, anchor='w')
         fileL.grid(row=1,column=0)
@@ -294,6 +337,11 @@ class EncodePage(tk.Frame):
         password = tk.Entry(self, show="*")
         password.grid(row=5, column=1, padx=3)
 
+        # create a Browse File Directory Button 
+        keyBtn = tk.Button(self, text="Generate Keys", height="1", width="12",
+               command=gen_keys)
+        keyBtn.grid(row=5,column=2)
+
         passReq = tk.Button(self,text="       Passphrase Requirements", height="1",
                             width="27", anchor='w', font = ('Arial Bold', '8','bold'),
                             bg="SkyBlue2", command=password_req)
@@ -304,7 +352,7 @@ class EncodePage(tk.Frame):
         #  Function saves all user input (both file paths and passphrase)
         def getFormInput():
             
-            global line, config_file, passphrase, config_encode, output
+            global line, config_file, passphrase, config_encode, output, status
             
             config_file = "C:/Users/Khang/Documents/BCIT Semester 8/Audio-Steganography/config.txt"
             flag = 0
@@ -337,9 +385,10 @@ class EncodePage(tk.Frame):
                     flag = 0
                     break
             
-            if (flag == -1) or (cfileCheck == False) or (afileCheck == False) or (dirCheck == False):
+            if (flag == -1) or (cfileCheck == False) or (afileCheck == False) or (dirCheck == False) or (status == "Keys-Not-Generated") :
                 # alert message informing user that no fields can be null
-                messagebox.showerror("Error", "Cannot leave any fields empty, ie. Both files must be chosen and password must meet all requirements!")
+                messagebox.showerror("Error", "Cannot leave any fields empty, ie. Both files must be chosen and password must meet all requirements!"
+                                              "  Remember that you must generate your public & private key before proceeding!")
             else:
                 config_encode["password_lock"] = passphrase
                 with open(config_file,"w") as configFile:
@@ -348,8 +397,8 @@ class EncodePage(tk.Frame):
                 af = config_encode["audioCarrier"]
                 output = af.replace(".wav", ".mp3")
                 controller.show_frame(CompleteEncodePage)
-                        
 
+                
         # create a Begin Button
         beginBtn = tk.Button(self, text="Next", height="1", width="13", command=getFormInput)
         beginBtn.grid(row=8,column=1, padx=2, pady=13)
@@ -542,7 +591,7 @@ class DecodePage(tk.Frame):
         # create a Browse File Directory Button 
         browseBtn = tk.Button(self, text="Browse", height="1", width="10",
                command=carrierBrowseD)
-        browseBtn.grid(row=1,column=2)
+        browseBtn.grid(row=1,column=2, padx=6)
 
         label = tk.Label(self,text="Directory to Save: ", font=LABEL_FONT, width=15, anchor='w')
         label.grid(row=2,column=0)
@@ -578,7 +627,7 @@ class DecodePage(tk.Frame):
         browseBtn.grid(row=4,column=2)
 
         enterKeyL = tk.Label(self,text="Passphrase:", font=LABEL_FONT, width=15, anchor='w')
-        enterKeyL.grid(row=5,column=0, padx=3)
+        enterKeyL.grid(row=5,column=0, padx=5)
 
         passwordU = tk.Entry(self, show="*")
         passwordU.grid(row=5, column=1, padx=3)
@@ -658,7 +707,7 @@ class CompleteEncodePage(tk.Frame):
 
         def progress_bar_process(progress, runButton):
             
-            global output, config_encode
+            global output, config_encode, private_key, public_key
             
             runButton.config(state="disabled")
             # create the countdown measurements of 10 seconds
@@ -666,7 +715,7 @@ class CompleteEncodePage(tk.Frame):
             try:
                 # This section involves using my hybrid crypto-system
                 # Private and Public keys are now generated
-                private_key, public_key = create_keys()
+                #private_key, public_key = create_keys(pwd)
                 # Get config variables from config file and load them into specific var
                 dataF, audioC, save_to_dir, pwd = getConfigFile()
                 # Hash the password to meet AES-128 bit criteria

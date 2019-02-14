@@ -2,14 +2,13 @@
 
 from Crypto.PublicKey import RSA
 import hashlib
-from dictionary import getConfigFile
 
-def create_keys():
+def create_keys(pwd):
 
     # Calls RSA library to generate a random RSA key that meets 4096 bits in length
     key = RSA.generate(2048)
 
-    dataF, audioC, save_to_dir, pwd = getConfigFile()
+    #dataF, audioC, save_to_dir, pwd = getConfigFile()
 
     # This hashes the key string literal via SHA-256 (Secure Hash Algorithm) which generates
     # a 32 byte (256 bit) hash that cannot be decrypted back. This is an implementation of
