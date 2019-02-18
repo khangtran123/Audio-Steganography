@@ -34,6 +34,28 @@ class AudioDiagnostics:
     def get_audio_frames(self):
         return self.file.getnframes()   #getnframes() = Returns number of audio frames
 
+    '''
+    Function: tell
+    '''
+    def tell(self):
+        return self.file.tell()   #tell() = Return current file pointer position
+
+    '''
+    Function: get_num_channels
+    Purpose: To retrieve the number of channels from audio file
+    Output: Returns an integer that represents total number of channels
+    '''
+    def get_num_channels(self):
+        return self.file.getnchannels()
+
+    '''
+    Function: get_num_samplew
+    Purpose: To retrieve the sample width from audio file
+    Output: Returns an integer that represents the sample width
+    '''
+    def get_num_samplew(self):
+        return self.file.getsampwidth()
+
 
     '''
     Function: read_audio_frame
@@ -41,8 +63,8 @@ class AudioDiagnostics:
              extract information from each frame
     Output: Reads and returns at most n frames of audio, as a string of bytes.
     '''
-    def read_audio_frames(self):
-        return self.file.readframes(self.get_audio_frames())  # readframes(n) --> iterate through each frame based on the total count of frames
+    def read_audio_frames(self, n):
+        return self.file.readframes(n)  # readframes(n) --> iterate through each frame based on the total count of frames
 
     
     '''
@@ -54,6 +76,7 @@ class AudioDiagnostics:
     '''
     def get_frame_segments(self):
         return self.file.getparams()
+
     
 
     '''

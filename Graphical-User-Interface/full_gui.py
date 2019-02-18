@@ -5,7 +5,7 @@ from tkinter import scrolledtext
 from tkinter import filedialog
 from tkinter import messagebox
 from tkinter.ttk import Progressbar
-#from audio_steg import *
+from audio_steg import *
 from encryption import *
 from decryption import *
 from key_generator import create_keys
@@ -681,10 +681,6 @@ class CompleteEncodePage(tk.Frame):
         tk.Frame.__init__(self,parent) #  parent class is "wireframe class"
         title = tk.Label(self, text="Encoding Stage", font=TITLE_FONT)
         title.pack(side=TOP, pady=10, padx=10)
-
-        def run_encode_algorithm():
-            #  This is where I will call the functions in algorithm script
-            return
                 
         '''
         Function Percentage
@@ -722,6 +718,15 @@ class CompleteEncodePage(tk.Frame):
                 password = hashlib.sha256(pwd.encode('utf-8')).digest()
                 # Begin File encryption and then lock file
                 file_encryption(private_key, public_key, password, dataF, save_to_dir)
+                f = os.listdir(save_to_dir)
+                if len(f) > 0:
+                    for file in os.listdir(save_to_dir):
+                        if file.endswith('.all'):
+                            print (".all File found")
+                            encrypted_file_name = save_to_dir + "/" + file
+                            embed_thread(audioC, encrypted_file_name, save_to_dir)
+                else:
+                    print ("No .all file found under this directory")
                 p = 0
                 for i in alist:
                     p += 1
@@ -789,10 +794,6 @@ class CompleteDecodePage(tk.Frame):
         tk.Frame.__init__(self,parent) #  parent class is "wireframe class"
         title = tk.Label(self, text="Decoding Stage", font=TITLE_FONT)
         title.pack(side=TOP, pady=10, padx=10)
-
-        def run_decode_algorithm():
-            #  This is where I will call the functions in algorithm script
-            return
                 
         '''
         Function Percentage
@@ -894,10 +895,13 @@ class CompleteDecodePage(tk.Frame):
         
 
 #  This condition makes sure that the user is either operating in Windows or Linux as we don't support any other OS at the moment
-if ((platform == "Windows") or (platform == "Linux")):
+if ((platform == "Windows")):
     app = wireframe()
     app.title("Khang's Audio Steganography Program")
     app.resizable(False,False)
     app.mainloop()
+elif ((platform == "Linux")):
+    # run setup.sh to install pycryptodome
+    print("Need to install linux tools")
 else:
     print ("This Application does not support " + platform + " at the moment!")
