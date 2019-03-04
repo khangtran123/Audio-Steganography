@@ -12,6 +12,7 @@ import base64
 import hashlib
 import os
 import zipfile
+import sys
 
 
 '''
@@ -24,10 +25,9 @@ b) Data Security that uses public/private keys--> RSA Keys
 #locked_file, directory, private_key, public_key, pwd = getConfigFile()
 
 #  Opening Parameters
-#locked_file = "C:/Users/Khang/Documents/BCIT Semester 8/Project/file.all"
-#directory = "C:/Users/Khang/Documents/GitHub"
-#locked_file = "KhangTran_Resume.all"
-#pwd = "bitchassFuck!"
+#unlocked_file = "C:/Users/Khang/Documents/demo/file.all"
+#directory = "C:/Users/Khang/Documents/demo"
+#pwd = "TranFamily1!"
 
 #  The reciever will decrypt the file via their private key.
 #private_key = "private_key.pem"    # These values will change when the gui adds the browse option
@@ -69,21 +69,28 @@ def cleanup(locked_file, sigFile, keyFile, cipher_file):
     os.remove(cipher_file)
     
 
-def signature_verify(public_key, input_file):
+def signature_verify(public_key, output_file):
 
     global sig_file_name
-    
+
+
     # Now we want to generate decrypted file's SHA256
+    with open(output_file,'rb') as hashed_file:
+        hash_content = hashed_file.read()
+    
     decrypted_hash = SHA256.new()
-    decrypted_hash.update(open(input_file,"rb").read())
+    decrypted_hash.update(hash_content)
 
     # Now we want to read in public key and check with signature
-    keyPair = RSA.importKey(open(public_key,"rb").read())
+    with open(public_key,"rb") as inKey:
+        key_content = inKey.read()
+    
+    key = RSA.importKey(key_content)
     # The key to use to sign or verify the message
-    keyVerify = PKCS1_v1_5.new(keyPair.publickey())
+    keyVerify = PKCS1_v1_5.new(key.publickey())
 
     # Get signature file
-    file_path = input_file.rsplit('/',1)[0]
+    file_path = output_file.rsplit('/',1)[0]
     
     f = os.listdir(file_path)
     if len(f) > 0:
@@ -93,18 +100,22 @@ def signature_verify(public_key, input_file):
                 sig_file_name = file_path + "/" + file
                 # Now we want to verify the deciphered key and authenticate signature,
                 # If not authenticated, will exit program
-                if (keyVerify.verify(decrypted_hash, open(sig_file_name, "rb").read())):
+                with open(sig_file_name,"rb") as sigFile:
+                    sig_content = sigFile.read()
+                print ("HELLOW")
+                if (keyVerify.verify(decrypted_hash, sig_content)):
                     print ("This sender is authenticated via their signature!")
                     print ("Here is the hash signature: " + decrypted_hash.hexdigest())
+                    signature_status = True
+                    return signature_status
                 else:
-                    print ("This sender failed authentication and cannot be trusted!")
-                continue
-            else:
-                continue
+                    raise ValueError("This sender failed authentication and cannot be trusted!")
+                    signature_status = False
+                    return signature_status
 
 
 '''
-Function: key_reader
+Function: key_verify
 Purpose: Creates a .key file that will be used for part (a) of the
          hybrid crypto system --> Security
 '''
@@ -114,76 +125,62 @@ def key_verify(private_key, password, input_file):
     default_length = 256 #default chunk size of a RSA Key of 1024 Bytes  (256 - 2) - 2(32)
     offset = 0
     res = []
-    status = False
 
-    # read in public key to encrypt AES key
-    #try:
     privKey = open(private_key,"rb").read()
+
+    # read in public key to decrypt AES key
+    keyPair = RSA.import_key(privKey, passphrase = password)
+    keyDecipher = PKCS1_OAEP.new(keyPair)
+
     
-    try:
-        keyPair = RSA.import_key(privKey, passphrase = password)
-        keyDecipher = PKCS1_OAEP.new(keyPair)
-        print ("Password Accepted")
-        
-        # Now we want to save this in a .key file that acts as a form of authenticatiom
-        # system for the application
-        #key_file_name = input_file.split('.')[0] + ".key"
-        file_path = input_file.rsplit('/',1)[0]
+    # Now we want to save this in a .key file that acts as a form of authenticatiom
+    # system for the application
+    #key_file_name = input_file.split('.')[0] + ".key"
+    file_path = input_file.rsplit('/',1)[0]
 
-        f = os.listdir(file_path)
-        if len(f) > 0:
-            for file in os.listdir(file_path):
-                if file.endswith('.key'):
-                    print (".enc File found")
-                    key_file_name = file_path + "/" + file
-                    key_file = open(key_file_name, 'rb')
-        
-                    # will read the first 16 characters of stored data in the file
-                    iv = key_file.read(16)
-        
-                    while 1:
-                        chunk = key_file.read(default_length)
-                        if not chunk: break
-                        res.append(keyDecipher.decrypt(chunk))
+    f = os.listdir(file_path)
+    if len(f) > 0:
+        for file in os.listdir(file_path):
+            if file.endswith('.key'):
+                key_file_name = file_path + "/" + file
+                key_file = open(key_file_name, 'rb')
+    
+                # will read the first 16 characters of stored data in the file
+                iv = key_file.read(16)
+                while 1:
+                    chunk = key_file.read(default_length)
+                    if not chunk: break
+                    res.append(keyDecipher.decrypt(chunk))
 
-                    key_file.close()
-                    key = b''.join(res)
-                    status = True
+                key_file.close()
+                key = b''.join(res)
 
-                    return key, iv, status
-                    continue
-                else:
-                    continue
-
-    except ValueError:
-        status = False
-        print ("Wrong Password")
-        return status
+                return key, iv
 
 
 '''
 Function: decrypt
 Purpose: Decrypts the encrypted file
 '''
-def decrypt(private_key, public_key, password, locked_file, directory):
+def decrypt(private_key, public_key, password, unlocked_file, directory):
 
     global cipher_file
+    global sig_verification
     
     #ciphertext = base64.b64decode(ciphertext)
-    file_path = locked_file.rsplit('/',1)[0]
-
+    file_path = unlocked_file.rsplit('/',1)[0]
     f = os.listdir(file_path)
     if len(f) > 0:
         for file in os.listdir(file_path):
             if file.endswith('.enc'):
-                print (".enc File found")
                 cipher_file = file_path + "/" + file
+                # This should be a section that checks for passphrase
+                # If yes then proceed to key_verify
+                # If no, return status so the gui can have a popup dialog saying incorrect password
                 # remember as the reciever, we're using our private keys to unlock
-                key, iv, status = key_verify(private_key, password, cipher_file)
-                
+                key, iv = key_verify(private_key, password, cipher_file)
                 # now we want to get just the filename without any extension
                 keyDecipher = AES.new(key, AES.MODE_CBC, iv )
-                
                 
                 with open(cipher_file,'rb') as inFile:
                     encrypted_text = inFile.read()
@@ -200,10 +197,10 @@ def decrypt(private_key, public_key, password, locked_file, directory):
                 f.write(plain_text)
                 f.close()
 
-                signature_verify(public_key, locked_file)
+                sig_verification = signature_verify(public_key, output_file)
                 # Now that the file has been retrieved, we want to remove all unnecessary files
-                cleanup(locked_file, sig_file_name, key_file_name, cipher_file)
-                continue
+                #cleanup(locked_file, sig_file_name, key_file_name, cipher_file)
+                return sig_verification
             else:
                 continue
 
@@ -212,26 +209,63 @@ def decrypt(private_key, public_key, password, locked_file, directory):
 Function Name: extraction
 Purpose: Extracts the components of the all file
 '''
-def extraction(input_file):
+def extraction(unlocked_file):
 
-    path = input_file.rsplit('/',1)[0]
+    path = unlocked_file.rsplit('/',1)[0]
     file_path = path + "/"
     
     # open the input file
-    f = zipfile.ZipFile(input_file, "r")
+    f = zipfile.ZipFile(unlocked_file, "r")
     
     #extract all files in this compression
     f.extractall(file_path)
         
+    
 
-#a = locked_file.split("/")
-#file_name = a[-1]
-#locked_filename = file_name.split('.')[0]
+'''
+Function: verification()
+Parameters: private_key, public_key, password, locked_file, directory
+Purpose: Verify the password provided by the user to even begin file
+         extraction and retrieval
 
-# We first need to extract the files from the all file sent by the sender
-#extraction(locked_file)
+'''
+def verification(private_key, public_key, password, unlocked_file, directory):
+    
+    global sig_verification
 
-# Now that all files are extracted, we want to decrypt the file
-#decrypt(private_key, public_key, password, locked_file, directory)
+    privKey = open(private_key,"rb").read()
+    
+    try:
 
-#print ("File Decrypted!")
+        # Load RSA Key and decrypt it with given password
+        # if wrong password, RSA lib will throw ValueError
+        # exception
+        keyPair = RSA.import_key(privKey, passphrase = password)
+        keyDecipher = PKCS1_OAEP.new(keyPair)
+
+        print ("Password Accepted")
+        print ("Commencing File Extraction")
+
+        # We first need to extract the files from the all file sent by the sender
+        extraction(unlocked_file)
+
+        print ("File Extraction Completed")
+        print ("Commencing File Decryption")
+
+        # Now that all files are extracted, we want to decrypt the file
+        decrypt(private_key, public_key, password, unlocked_file, directory)
+        
+        print ("File Decrypted")
+        status = True
+        return status, sig_verification
+        
+    except ValueError:
+        print ("Wrong Password")
+        status = False
+        sig_verification = False
+        return status, sig_verification 
+
+
+# We want to call on this function to verify if the provided password works
+#status, sig_verification = verification(private_key, public_key, password, unlocked_file, directory)
+

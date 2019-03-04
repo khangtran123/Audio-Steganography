@@ -116,7 +116,7 @@ class EncodePage(tk.Frame):
         label = tk.Label(self, text="Encode", font=TITLE_FONT)
         label.grid(row=0, column=1,pady=10, padx=10)
 
-        global password, fileLabel, audioL, dirL, platform
+        global password, fileLabel, audioL, dirL, platform, keyBtn
         
 
         #  Function: Browse()
@@ -237,7 +237,9 @@ class EncodePage(tk.Frame):
 
         def backToM():
             
-            global fileLabel, audioL, dirL, password, datafile, audioCarrier, menuBtn
+            global fileLabel, audioL, dirL, password, datafile, audioCarrier, menuBtn, keyBtn
+
+            password.configure(state="normal")
 
             #Reset form by clearing all labels and global variables
             if (fileLabel.winfo_exists() == 1):
@@ -251,11 +253,12 @@ class EncodePage(tk.Frame):
 
             datafile = ""
             audioCarrier = ""
+            keyBtn.config(state="active")
             controller.show_frame(MainPage)
 
         def gen_keys():
             
-            global passphrase, private_key, public_key, status
+            global passphrase, private_key, public_key, status, password
     
             flag = 0
             
@@ -294,6 +297,8 @@ class EncodePage(tk.Frame):
             else:
                 private_key, public_key = create_keys(passphrase)
                 status = "Keys-Generated"
+                keyBtn.config(state="disabled")
+                password.config(state="disabled")
                 messagebox.showinfo("Sucessful", "Password Accepted and Private & Public Keys Generated!")
 
         
@@ -707,7 +712,7 @@ class CompleteEncodePage(tk.Frame):
             
             runButton.config(state="disabled")
             # create the countdown measurements of 10 seconds
-            alist = range(10)
+            alist = range(30)
             try:
                 # This section involves using my hybrid crypto-system
                 # Private and Public keys are now generated
@@ -724,7 +729,8 @@ class CompleteEncodePage(tk.Frame):
                         if file.endswith('.all'):
                             print (".all File found")
                             encrypted_file_name = save_to_dir + "/" + file
-                            embed_thread(audioC, encrypted_file_name, save_to_dir)
+                            print (encrypted_file_name)
+                            embed(audioC, encrypted_file_name, save_to_dir)
                 else:
                     print ("No .all file found under this directory")
                 p = 0
@@ -815,39 +821,29 @@ class CompleteDecodePage(tk.Frame):
                 raise Exception("Only case 1, 2, or 3 are available!")
 
         def progress_bar_process(progress, runButton):
-            runButton.config(state="disabled")
-            # create the countdown measurements of 10 seconds
-            alist = range(10)
-            # Run Stego Algorithm Script
-            #run_algorithm()
-            try:
-                # This section involves using my hybrid crypto-system
-                # Private and Public keys are now generated
-               # private_key, public_key = create_keys()
-                # Get config variables from config file and load them into specific var
-                locked_file, directory, private_key, public_key, pwd = getConfigFile()
-                # Hash the password to meet AES-128 bit criteria
-                password = hashlib.sha256(pwd.encode('utf-8')).digest()
-                # We first need to extract the files from the all file sent by the sender
-                extraction(locked_file)
-                # Now that all files are extracted, we want to decrypt the file
-                decrypt(private_key, public_key, password, locked_file, directory)
-                p = 0
-                for i in alist:
-                    p += 1
-                    # Case2: x is what percent of y?
-                    unit = percentage_calculator(p, len(alist), case=2) 
 
-                    time.sleep(1)
+            def reset():
 
-                    progress['value'] = unit
-                    percent['text'] = "{}%".format(int(unit))
+                global pickedAudio, direL, priv_keyL, public_keyL, passwordU, audioFile, audioF, directory, private_key, public_key
 
-                    container.update()
+                #Reset form by clearing all labels and global variables
+                pickedAudio.configure(text="")
+                direL.configure(text="")
+                priv_keyL.configure(text="")
+                public_keyL.configure(text="")
+                passwordU.delete(0, 'end')
+                audioF = ""
+                audioFile = ""
+                pk = ""
+                puk = ""
+                private_key = ""
+                public_key = ""
+                directory = ""
+                menuBtn.pack_forget()
+                runButton.config(state="active")
+                controller.show_frame(MainPage)
 
-                messagebox.showinfo('Info', "Retrieval Process Complete! Hidden data is in the same directory as the original audio output directory")
-                
-                def reset():
+            def wrong_password():
 
                     global pickedAudio, direL, priv_keyL, public_keyL, passwordU, audioFile, audioF, directory, private_key, public_key
 
@@ -864,9 +860,55 @@ class CompleteDecodePage(tk.Frame):
                     private_key = ""
                     public_key = ""
                     directory = ""
-                    menuBtn.pack_forget()
                     runButton.config(state="active")
                     controller.show_frame(MainPage)
+                    
+            runButton.config(state="disabled")
+            # create the countdown measurements of 10 seconds
+            alist = range(20)
+            # Run Stego Algorithm Script
+            #run_algorithm()
+            try:
+                # This section involves using my hybrid crypto-system
+                # Private and Public keys are now generated
+                # private_key, public_key = create_keys()
+                # Get config variables from config file and load them into specific var
+                audio_file, directory, private_key, public_key, pwd = getConfigFile()
+                # Hash the password to meet AES-128 bit criteria
+                password = hashlib.sha256(pwd.encode('utf-8')).digest()
+                
+                unlocked_file = decode(audio_file,directory)
+                # We first need to extract the files from the all file sent by the sender
+                print (unlocked_file)
+                #extraction(unlock_file)    NO LONGER A VALID FUNCTION --> 
+                # Now that all files are extracted, we want to decrypt the file
+                #decrypt(private_key, public_key, password, unlocked_file, directory)
+                status, sig_verification = verification(private_key, public_key, password, unlocked_file, directory)
+                print (sig_verification)
+                if (status == False):
+                    messagebox.showinfo('Password Error', "The password you provided was incorrect. Directing you back to main menu now!")
+                    wrong_password()
+                    
+                p = 0
+                for i in alist:
+                    p += 1
+                    # Case2: x is what percent of y?
+                    unit = percentage_calculator(p, len(alist), case=2) 
+
+                    time.sleep(1)
+
+                    progress['value'] = unit
+                    percent['text'] = "{}%".format(int(unit))
+
+                    container.update()
+                    
+                if (sig_verification == False):
+                    messagebox.showinfo('Signature Authentication',"This sender failed authentication and cannot be trusted!")
+                elif (sig_verification == True):
+                    messagebox.showinfo('Signature Authentication',"This sender is authenticated via their signature!")
+                    
+                messagebox.showinfo('Info', "Retrieval Process Complete! Hidden data is in the same directory as the original audio output directory")
+                
                 
                 
                 # create back to Main Menu Button

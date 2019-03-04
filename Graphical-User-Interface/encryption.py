@@ -5,7 +5,7 @@ from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto.PublicKey import RSA
 from Crypto.Hash import SHA256
 from Crypto.Random import random
-from Crypto.Signature import PKCS1_v1_5
+from Crypto.Signature import PKCS1_v1_5, pkcs1_15
 
 import base64
 import hashlib
@@ -24,23 +24,21 @@ b) Data Security that uses public/private keys--> RSA Keys
 #dataF, audioC, save_to_dir, pwd = getConfigFile()
 
 #  Opening Parameters
+'''
 dataF = "C:/Users/Khang/Documents/Job Hunting/KhangTran_Resume.docx"
 directory = "C:/Users/Khang/Documents/BCIT Semester 8/Project"
-#oFile = "C:/Users/Khang/Documents/KhangTran_Resume.enc"
-#iFile = "KhangTran_Resume.docx"
-#oFile = "KhangTran_Resume.docx.enc"
-pwd = "Losangles12!"
+pwd = "TranFamily1!"'''
 
 #  Sender encrypts the cipher with the reciever's public key and then the reciever will
 #  decrypt the file via their private key.
-priv_key = "private_key.pem"    # These values will change when the gui adds the browse option
-pub_key = "public_key.pem"
+#priv_key = "private_key.pem"    # These values will change when the gui adds the browse option
+#pub_key = "public_key.pem"
 
 
 # This hashes the key string literal via SHA-256 (Secure Hash Algorithm) which generates
 # a 32 byte (256 bit) hash that cannot be decrypted back. This is an implementation of
 # secure form of a signature to indicate the reciever that this is from a trusted source
-password = hashlib.sha256(pwd.encode('utf-8')).digest()
+#password = hashlib.sha256(pwd.encode('utf-8')).digest()
 
 
 '''
@@ -76,14 +74,19 @@ def signature(private_key, password, input_file):
 
     global sig_file_name
 
-    with open(input_file,'rb') as inFile:
+    with open(input_file, 'rb') as inFile:
         content = inFile.read()
 
     # Now we want to create a hash (SHA256 - to be compatible with AES)
-    hash_content = SHA256.new(content)
-    # Reading in private key to sign the file with the password input
-    keyPair = RSA.import_key(open(private_key,"r").read(), passphrase=password)
-    keySignature = PKCS1_v1_5.new(keyPair)
+    hash_content = SHA256.new()
+    hash_content.update(content)
+    
+    
+    with open(private_key,"rb") as inKey:
+        key_content = inKey.read()
+    
+    key = RSA.import_key(key_content, passphrase=password)
+    key_signature = PKCS1_v1_5.new(key)
 
     # Now we want to save this in a .sig file that acts as a form of authentication
     # system for the application
@@ -91,8 +94,8 @@ def signature(private_key, password, input_file):
     file_name = x[-1]
     sig_file_name = file_name.split('.')[0] + ".sig"
 
-    f = open(sig_file_name, 'w')
-    f.write(str(keySignature.sign(hash_content)))
+    f = open(sig_file_name, 'wb')
+    f.write(key_signature.sign(hash_content))
     f.close()
     
     print ("Sig File Created: " + sig_file_name)

@@ -10,6 +10,8 @@ def create_keys(pwd):
 
     #dataF, audioC, save_to_dir, pwd = getConfigFile()
 
+    #pwd = "TranFamily1!"
+
     # This hashes the key string literal via SHA-256 (Secure Hash Algorithm) which generates
     # a 32 byte (256 bit) hash that cannot be decrypted back. This is an implementation of
     # secure form of public/private key process with the given password
@@ -37,7 +39,6 @@ def create_keys(pwd):
     file_pub.close()
 
     return privatekey_file, publickey_file
-
 
 #create_keys()
 
